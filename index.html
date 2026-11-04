@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Калькулятор стоимости аудиторской проверки</title>
+<style>
+  :root {
+    --accent: #2f6fed;
+    --text: #1f2430;
+    --muted: #6b7280;
+    --border: #d9dde5;
+    --bg: #f7f8fa;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    color: var(--text);
+    background: var(--bg);
+    line-height: 1.5;
+  }
+  .container {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 24px 16px 60px;
+  }
+  h1 {
+    font-size: 1.5rem;
+    margin: 0 0 4px;
+  }
+  .subtitle {
+    color: var(--muted);
+    margin: 0 0 28px;
+    font-size: 0.95rem;
+  }
+  fieldset {
+    border: none;
+    padding: 0;
+    margin: 0 0 32px;
+  }
+  legend, .section-title {
+    font-weight: 600;
+    font-size: 1.05rem;
+    margin-bottom: 14px;
+    padding: 0;
+  }
+  .field {
+    margin-bottom: 16px;
+  }
+  label {
+    display: block;
+    font-size: 0.9rem;
+    margin-bottom: 5px;
+  }
+  .hint { color: var(--muted); font-weight: 400; }
+  input[type="text"], input[type="email"], input[type="number"], select {
+    width: 100%;
+    padding: 10px 12px;
+    font-size: 1rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: #fff;
+    color: var(--text);
+  }
+  input:focus, select:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+    border-color: var(--accent);
+  }
+  .radio-group, .checkbox-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+  }
+  .radio-group label, .checkbox-group label {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 0.92rem;
+    margin: 0;
+    cursor: pointer;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 9px 12px;
+    flex: 1 1 auto;
+    min-width: 140px;
+  }
+  .radio-group input, .checkbox-group input {
+    accent-color: var(--accent);
+    width: 17px;
+    height: 17px;
+    flex: 0 0 auto;
+  }
+  .checkbox-group label { min-width: 45%; }
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 28px;
+  }
+  button {
+    padding: 13px 22px;
+    font-size: 1rem;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    cursor: pointer;
+    background: #fff;
+    color: var(--text);
+    flex: 1 1 220px;
+  }
+  .btn-primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+    font-weight: 600;
+  }
+  button:active { transform: translateY(1px); }
+  #result {
+    display: none;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    margin-top: 28px;
+  }
+  #result h2 { margin-top: 0; font-size: 1.2rem; }
+  #result-hours {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--accent);
+    margin: 0 0 14px;
+  }
+  #result-body { white-space: pre-line; font-size: 0.92rem; }
+  .status { margin-top: 10px; font-size: 0.92rem; color: var(--muted); }
+  .mail-link {
+    color: var(--accent);
+    font-weight: 600;
+    text-decoration: none;
+    border-bottom: 1px solid var(--accent);
+  }
+  .error-msg { color: #c0392b; font-size: 0.85rem; margin-top: 4px; display: none; }
+  .field.invalid input, .field.invalid select { border-color: #c0392b; }
+  .field.invalid .error-msg { display: block; }
+
+  @media (max-width: 480px) {
+    h1 { font-size: 1.25rem; }
+    .checkbox-group label { min-width: 100%; }
+    button { flex-basis: 100%; }
+  }
+  @media print {
+    body { background: #fff; }
+    .no-print { display: none !important; }
+    #result { display: block !important; border: none; padding: 0; }
+    .container { max-width: none; padding: 0; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Калькулятор стоимости аудиторской проверки</h1>
+  <p class="subtitle">Заполните сведения о компании — мы рассчитаем время работы аудиторов с документами и отправим расчёт вам на почту.</p>
+
+  <form id="calc-form" novalidate>
+
+    <fieldset>
+      <legend class="section-title">Сведения о компании</legend>
+
+      <div class="field" data-required>
+        <label for="company">Название компании</label>
+        <input type="text" id="company" name="company" autocomplete="organization">
+        <div class="error-msg">Укажите название компании</div>
+      </div>
+
+      <div class="field" data-required>
+        <label for="inn">ИНН компании</label>
+        <input type="text" id="inn" name="inn" inputmode="numeric" maxlength="12" autocomplete="off">
+        <div class="error-msg">ИНН должен содержать 10 или 12 цифр</div>
+      </div>
+
+      <div class="field" data-required>
+        <label for="email">Электронная почта для связи</label>
+        <input type="email" id="email" name="email" autocomplete="email">
+        <div class="error-msg">Укажите корректный адрес электронной почты</div>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend class="section-title">Основные параметры</legend>
+
+      <div class="field" data-required>
+        <label for="branches">Обособленные подразделения, требующие самостоятельной проверки <span class="hint">(число)</span></label>
+        <input type="number" id="branches" name="branches" min="0" step="1" value="0">
+        <div class="error-msg">Введите число (0 или больше)</div>
+      </div>
+
+      <div class="field" data-required>
+        <label for="periods">Количество проверяемых периодов (лет)</label>
+        <input type="number" id="periods" name="periods" min="1" step="1" value="1">
+        <div class="error-msg">Введите число (1 или больше)</div>
+      </div>
+
+      <div class="field" data-required>
+        <label for="tax-system">Система налогообложения</label>
+        <select id="tax-system" name="tax-system">
+          <option value="">— выберите —</option>
+          <option>УСНО — доходы</option>
+          <option>УСНО — доходы минус расходы</option>
+          <option>УСНО + НДС</option>
+          <option>ОСНО + НДС</option>
+          <option>ОСНО + раздельный учёт</option>
+        </select>
+        <div class="error-msg">Выберите систему налогообложения</div>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend class="section-title">Учёт и персонал</legend>
+
+      <div class="field" data-required>
+        <label>Численность сотрудников</label>
+        <div class="radio-group">
+          <label><input type="radio" name="staff" value="1-10" required>1–10</label>
+          <label><input type="radio" name="staff" value="11-50">11–50</label>
+          <label><input type="radio" name="staff" value="50+">более 50</label>
+        </div>
+      </div>
+
+      <div class="field" data-required>
+        <label>Количество видов начислений заработной платы</label>
+        <div class="radio-group">
+          <label><input type="radio" name="payroll-types" value="до 5" required>до 5</label>
+          <label><input type="radio" name="payroll-types" value="6-10">6–10</label>
+          <label><input type="radio" name="payroll-types" value="свыше 10">свыше 10</label>
+        </div>
+      </div>
+
+      <div class="field" data-required>
+        <label>Резервы на отпуска создаются</label>
+        <div class="radio-group">
+          <label><input type="radio" name="vacation-reserve" value="программно" required>программно</label>
+          <label><input type="radio" name="vacation-reserve" value="вручную">вручную</label>
+          <label><input type="radio" name="vacation-reserve" value="не создаются">не создаются</label>
+        </div>
+      </div>
+
+      <div class="field" data-required>
+        <label>Количество основных средств</label>
+        <div class="radio-group">
+          <label><input type="radio" name="fixed-assets" value="1-10" required>1–10</label>
+          <label><input type="radio" name="fixed-assets" value="11-50">11–50</label>
+          <label><input type="radio" name="fixed-assets" value="свыше 50">свыше 50</label>
+        </div>
+      </div>
+
+      <div class="field" data-required>
+        <label>Количество используемых единиц транспорта</label>
+        <div class="radio-group">
+          <label><input type="radio" name="transport" value="1-10" required>1–10</label>
+          <label><input type="radio" name="transport" value="11-50">11–50</label>
+          <label><input type="radio" name="transport" value="свыше 50">свыше 50</label>
+        </div>
+      </div>
+
+      <div class="field" data-required>
+        <label>Поставщики, по которым проводились расчёты и/или имеется сальдо</label>
+        <div class="radio-group">
+          <label><input type="radio" name="suppliers" value="до 100" required>до 100</label>
+          <label><input type="radio" name="suppliers" value="100-300">100–300</label>
+          <label><input type="radio" name="suppliers" value="свыше 300">свыше 300</label>
+        </div>
+      </div>
+
+      <div class="field" data-required>
+        <label>Покупатели, по которым проводились расчёты и/или имеется сальдо</label>
+        <div class="radio-group">
+          <label><input type="radio" name="customers" value="до 100" required>до 100</label>
+          <label><input type="radio" name="customers" value="100-300">100–300</label>
+          <label><input type="radio" name="customers" value="свыше 300">свыше 300</label>
+        </div>
+      </div>
+
+      <div class="field" data-required>
+        <label>Наличие незавершённого производства</label>
+        <div class="radio-group">
+          <label><input type="radio" name="wip" value="да" required>да</label>
+          <label><input type="radio" name="wip" value="нет">нет</label>
+        </div>
+      </div>
+
+      <div class="field" data-required>
+        <label>Учёт ведётся</label>
+        <div class="radio-group">
+          <label><input type="radio" name="accounting-programs" value="все в одной программе" required>все в одной программе</label>
+          <label><input type="radio" name="accounting-programs" value="в разных программах с автоматической синхронизацией">в разных программах с автоматической синхронизацией</label>
+          <label><input type="radio" name="accounting-programs" value="в разных программах с переносом данных вручную">в разных программах с переносом данных вручную</label>
+        </div>
+      </div>
+
+      <div class="field" data-required>
+        <label>Налоговый учёт ведётся</label>
+        <div class="radio-group">
+          <label><input type="radio" name="tax-accounting" value="одновременно с бухгалтерским с учётом корректировок" required>одновременно с бухгалтерским с учётом корректировок</label>
+          <label><input type="radio" name="tax-accounting" value="самостоятельный налоговый учёт">самостоятельный налоговый учёт</label>
+        </div>
+      </div>
+
+      <div class="field" data-required>
+        <label>Доступ аудиторов в программу учёта (включая возможность сохранения и анализа файлов)</label>
+        <div class="radio-group">
+          <label><input type="radio" name="access" value="удаленный доступ или предоставление архива базы" required>удалённый доступ или предоставление архива базы</label>
+          <label><input type="radio" name="access" value="доступ только на территории предприятия">доступ только на территории предприятия</label>
+          <label><input type="radio" name="access" value="без доступа">без доступа</label>
+        </div>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend class="section-title">Виды деятельности и договорных отношений</legend>
+      <div class="checkbox-group">
+        <label><input type="checkbox" name="activities" value="производство">производство</label>
+        <label><input type="checkbox" name="activities" value="подрядное строительство">подрядное строительство</label>
+        <label><input type="checkbox" name="activities" value="застройщик">застройщик</label>
+        <label><input type="checkbox" name="activities" value="услуги">услуги</label>
+        <label><input type="checkbox" name="activities" value="растениеводство">растениеводство</label>
+        <label><input type="checkbox" name="activities" value="животноводство">животноводство</label>
+        <label><input type="checkbox" name="activities" value="ЖКХ">ЖКХ</label>
+        <label><input type="checkbox" name="activities" value="совместная деятельность">совместная деятельность</label>
+        <label><input type="checkbox" name="activities" value="доверительное управление">доверительное управление</label>
+        <label><input type="checkbox" name="activities" value="лизинг">лизинг</label>
+        <label><input type="checkbox" name="activities" value="агентские договоры (комиссия, поручения)">агентские договоры (комиссия, поручения)</label>
+        <label><input type="checkbox" name="activities" value="давальческое сырьё">давальческое сырьё</label>
+      </div>
+    </fieldset>
+
+    <div class="actions no-print">
+      <button type="submit" class="btn-primary">Рассчитать время на работу аудиторов с документами</button>
+      <button type="button" id="print-btn">Распечатать расчёт</button>
+    </div>
+
+    <div id="result" aria-live="polite">
+      <p id="result-hours"></p>
+      <div id="result-body"></div>
+      <div class="status" id="send-status"></div>
+    </div>
+
+  </form>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var form = document.getElementById("calc-form");
+  var resultBox = document.getElementById("result");
+  var resultBody = document.getElementById("result-body");
+  var resultHours = document.getElementById("result-hours");
+  var sendStatus = document.getElementById("send-status");
+  var printBtn = document.getElementById("print-btn");
+
+  function setInvalid(el, invalid) {
+    var field = el.closest(".field");
+    if (field) field.classList.toggle("invalid", invalid);
+  }
+
+  function validate() {
+    var ok = true;
+    var firstBad = null;
+
+    // Текстовые поля
+    ["company", "inn", "email", "branches", "periods", "tax-system"].forEach(function (id) {
+      var el = document.getElementById(id);
+      var bad = !el.value.trim();
+      if (!bad && id === "inn") bad = !/^\d{10}$|^\d{12}$/.test(el.value.trim());
+      if (!bad && id === "email") bad = !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(el.value.trim());
+      if (!bad && (id === "branches" || id === "periods")) {
+        bad = !(Number(el.value) >= (id === "periods" ? 1 : 0));
+      }
+      setInvalid(el, bad);
+      if (bad) { ok = false; firstBad = firstBad || el; }
+    });
+
+    // Радиогруппы: группа заполнена, если выбран ЛЮБОЙ её вариант
+    var groups = {};
+    form.querySelectorAll("input[type=radio]").forEach(function (r) {
+      (groups[r.name] = groups[r.name] || []).push(r);
+    });
+    Object.keys(groups).forEach(function (name) {
+      var radios = groups[name];
+      var checked = radios.some(function (r) { return r.checked; });
+      radios.forEach(function (r) { setInvalid(r, !checked); });
+      if (!checked) {
+        ok = false;
+        firstBad = firstBad || radios[0];
+      }
+    });
+
+    if (firstBad) firstBad.focus();
+    return ok;
+  }
+
+  function collectData() {
+    var fd = new FormData(form);
+    var data = {};
+    fd.forEach(function (v, k) { data[k] = v; });
+    data.activities = Array.prototype.map.call(
+      form.querySelectorAll('input[name="activities"]:checked'),
+      function (c) { return c.value; }
+    );
+    return data;
+  }
+
+  // ── Формулы расчёта ──────────────────────────────────────────────
+  // Схема: 1) часы по пунктам (зарплата — с коэффициентом КЗ)
+  //        2) + фиксированные 24 ч
+  //        3) × все коэффициенты (К, КН, КЛ, КП, КД — нулевых нет)
+  function calculate(data) {
+    var b = [];
+    var totalHours = 0;
+
+    function addHours(label, h) {
+      if (h > 0) { b.push(label + " — " + h + " ч"); totalHours += h; }
+    }
+
+    // Численность сотрудников: базовые часы, умножаются на КЗ
+    var staffHours = { "1-10": 3, "11-50": 4, "50+": 5 }[data.staff] || 0;
+    var kz = { "до 5": 1, "6-10": 1.2, "свыше 10": 1.4 }[data["payroll-types"]] || 1;
+    addHours("Численность сотрудников (" + data.staff + ")", staffHours);
+    if (staffHours > 0 && kz !== 1) b.push("  × КЗ = " + kz + " (виды начислений ЗП: " + data["payroll-types"] + ")");
+    totalHours += staffHours * kz - staffHours; // добавляем только надбавку КЗ
+
+    addHours("Резервы на отпуска (" + data["vacation-reserve"] + ")",
+      { "программно": 1, "вручную": 2, "не создаются": 4 }[data["vacation-reserve"]] || 0);
+    addHours("Основные средства (" + data["fixed-assets"] + ")",
+      { "1-10": 2, "11-50": 3, "свыше 50": 4 }[data["fixed-assets"]] || 0);
+    addHours("Транспорт (" + data.transport + ")",
+      { "1-10": 3, "11-50": 4, "свыше 50": 6 }[data.transport] || 0);
+    addHours("Поставщики (" + data.suppliers + ")",
+      { "до 100": 4, "100-300": 6, "свыше 300": 8 }[data.suppliers] || 0);
+    addHours("Покупатели (" + data.customers + ")",
+      { "до 100": 4, "100-300": 6, "свыше 300": 8 }[data.customers] || 0);
+    addHours("Незавершённое производство", data.wip === "да" ? 2 : 0);
+    addHours("Самостоятельный налоговый учёт", data["tax-accounting"] === "самостоятельный налоговый учёт" ? 8 : 0);
+
+    var actHours = {
+      "производство": 8, "подрядное строительство": 8, "застройщик": 8, "услуги": 8,
+      "растениеводство": 16, "животноводство": 16, "ЖКХ": 24, "совместная деятельность": 8,
+      "доверительное управление": 8, "лизинг": 2,
+      "агентские договоры (комиссия, поручения)": 4, "давальческое сырьё": 1
+    };
+    (data.activities || []).forEach(function (a) {
+      addHours("Вид деятельности: " + a, actHours[a] || 0);
+    });
+
+    // 2. Фиксированные часы
+    var fixed = 24;
+    var base = totalHours + fixed;
+
+    // 3. Коэффициенты (все > 0)
+    var n = Math.max(0, parseInt(data.branches, 10) || 0);
+    var kBranch = Math.pow(1.4, n);            // каждое подразделение умножает итог на 1,4
+    var kTax = { "УСНО — доходы": 0.7, "УСНО — доходы минус расходы": 0.8, "УСНО + НДС": 0.9, "ОСНО + НДС": 1, "ОСНО + раздельный учёт": 1.2 }[data["tax-system"]] || 1;
+    var p = parseInt(data.periods, 10) || 1;
+    var kPeriods = p === 1 ? 1 : p === 2 ? 1.8 : p === 3 ? 2.4 : 3;
+    var kPrograms = { "все в одной программе": 1, "в разных программах с автоматической синхронизацией": 1.1, "в разных программах с переносом данных вручную": 1.2 }[data["accounting-programs"]] || 1;
+    var kAccess = { "удаленный доступ или предоставление архива базы": 1, "доступ только на территории предприятия": 1.2, "без доступа": 3 }[data.access] || 1;
+
+    var total = base * kBranch * kTax * kPeriods * kPrograms * kAccess;
+
+    var lines = [];
+    lines.push("1. Часы по пунктам анкеты:");
+    b.forEach(function (x) { lines.push("   " + x); });
+    lines.push("   Итого часов: " + totalHours);
+    lines.push("");
+    lines.push("2. Фиксированные часы на проверку: " + fixed);
+    lines.push("   База: " + totalHours + " + " + fixed + " = " + base + " ч");
+    lines.push("");
+    lines.push("3. Коэффициенты:");
+    if (n > 0) lines.push("   Обособленные подразделения (" + n + "): × " + fmt(kBranch));
+    lines.push("   Система налогообложения (" + data["tax-system"] + "): × " + fmt(kTax));
+    lines.push("   Проверяемые периоды (" + p + "): × " + fmt(kPeriods));
+    lines.push("   Организация учёта (" + data["accounting-programs"] + "): × " + fmt(kPrograms));
+    lines.push("   Доступ аудиторов (" + data.access + "): × " + fmt(kAccess));
+    lines.push("");
+    lines.push("ИТОГО: " + base + " ч × " + fmt(kBranch * kTax * kPeriods * kPrograms * kAccess) +
+      " = " + fmt(total) + " ч");
+
+    return { hours: Math.round(total * 10) / 10, details: lines.join("\n") };
+  }
+
+  function fmt(x) {
+    return (Math.round(x * 100) / 100).toString().replace(".", ",");
+  }
+
+  // ── Отправка на почту ────────────────────────────────────────────
+  // Форма отправляется через Formspree (письмо приходит на EMAIL_TO,
+  // данные нигде не хранятся, кроме самого письма).
+  // Чтобы включить: зарегистрируйтесь на formspree.io с почтой EMAIL_TO,
+  // создайте форму и впишите её ID вместо "FORMSPREE_FORM_ID" ниже.
+  var FORMSPREE_FORM_ID = "mljjzbqp";
+  var EMAIL_TO = "partner010101@gmail.com";
+
+  function buildMessage(data, calc) {
+    return "Компания: " + data.company +
+      "\nИНН: " + data.inn +
+      "\nEmail для связи: " + data.email +
+      "\nОбособленные подразделения: " + data.branches +
+      "\nПроверяемых периодов (лет): " + data.periods +
+      "\nСистема налогообложения: " + data["tax-system"] +
+      "\nЧисленность сотрудников: " + data.staff +
+      "\nВиды начислений ЗП: " + data["payroll-types"] +
+      "\nРезервы на отпуска: " + data["vacation-reserve"] +
+      "\nОсновные средства: " + data["fixed-assets"] +
+      "\nЕдиниц транспорта: " + data.transport +
+      "\nПоставщики: " + data.suppliers +
+      "\nПокупатели: " + data.customers +
+      "\nНезавершённое производство: " + data.wip +
+      "\nУчёт ведётся: " + data["accounting-programs"] +
+      "\nНалоговый учёт: " + data["tax-accounting"] +
+      "\nДоступ аудиторов: " + data.access +
+      "\nВиды деятельности: " + ((data.activities && data.activities.length) ? data.activities.join(", ") : "не отмечены") +
+      "\n\n" + calc.details;
+  }
+
+  function sendByEmail(data, calc) {
+    sendStatus.innerHTML = "";
+    var text = buildMessage(data, calc);
+    var hoursLine = "Оценка трудозатрат: " + fmt(calc.hours) + " часов";
+    var subject = "Расчёт времени аудиторской проверки — " + data.company;
+
+    var configured = FORMSPREE_FORM_ID !== "FORMSPREE_FORM_ID";
+
+    if (configured) {
+      sendStatus.textContent = "Отправляем расчёт…";
+      var payload = new URLSearchParams();
+      payload.set("_subject", subject);
+      payload.set("email", EMAIL_TO);
+      payload.set("reply_to", data.email);
+      payload.set("company", data.company);
+      payload.set("inn", data.inn);
+      payload.set("result", hoursLine);
+      payload.set("message", text);
+      fetch("https://formspree.io/f/" + FORMSPREE_FORM_ID, {
+        method: "POST",
+        headers: { "Accept": "application/json" },
+        body: payload
+      }).then(function (resp) {
+        sendStatus.textContent = resp.ok
+          ? "Расчёт отправлен на " + EMAIL_TO + "."
+          : "Не удалось отправить расчёт (ошибка сервера). Попробуйте позже.";
+      }).catch(function () {
+        sendStatus.textContent = "Нет связи с сервисом отправки. Проверьте интернет и попробуйте снова.";
+      });
+    } else {
+      // Форма ещё не настроена — резервный вариант: почтовый клиент пользователя.
+      var a = document.createElement("a");
+      a.href = "mailto:" + EMAIL_TO + "?subject=" + encodeURIComponent(subject) + "&body=" + encodeURIComponent(hoursLine + "\n\n" + text);
+      a.textContent = "Отправить расчёт на " + EMAIL_TO;
+      a.className = "mail-link";
+      sendStatus.appendChild(a);
+      var note = document.createElement("div");
+      note.textContent = "Автоматическая отправка будет включена после настройки почтового сервиса.";
+      sendStatus.appendChild(note);
+    }
+  }
+
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
+    if (!validate()) return;
+    var data = collectData();
+    var calc = calculate(data);
+
+    resultHours.textContent = "Оценка трудозатрат: " + fmt(calc.hours) + " часов";
+    resultBody.textContent = "";
+    resultBox.style.display = "block";
+    resultBox.scrollIntoView({ behavior: "smooth", block: "start" });
+
+    sendByEmail(data, calc);
+  });
+
+  printBtn.addEventListener("click", function () {
+    if (resultBox.style.display !== "block") {
+      resultBox.style.display = "block";
+      resultHours.textContent = "Расчёт не выполнен — заполните форму и нажмите «Рассчитать».";
+    }
+    window.print();
+  });
+})();
+</script>
+</body>
+</html>
